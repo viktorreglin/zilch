@@ -9,66 +9,99 @@
 
 
 //Deklarationen
-int legalDice( int dice, int *savedDice, int *points );
+
+#define NUMBER_OF_DICE 6
+#define LINELENGTH 80
+
+typedef struct{
+   int roll;
+   int points;
+   int saved;
+
+} DIE;
+
+int legalDice( int dice, DIE * wuerfel );
+
+
+#define NANO_SECOND_MULTIPLIER 1000000
 
 
 //kurz Pause
-void takeBreak(  ){
-    sleep( 1 );
+void takeBreak( int milliseconds ){
+    struct timespec sleepValue;
+    sleepValue.tv_sec = 0;
+    sleepValue.tv_nsec = milliseconds * NANO_SECOND_MULTIPLIER;
+    nanosleep( &sleepValue, NULL);
 }
 
 
 //zeigt den Namen des Spiels
 void startScreen(  ){
-    takeBreak( );
+    takeBreak( 800 );
     printf( "\n#################\n" );
-    takeBreak( );
+    takeBreak( 800 );
     printf( "##    ZILCH    ##\n" );
-    takeBreak( );
+    takeBreak( 800 );
     printf( "#################\n" );    
 }
 
 
 //würfelt alle ungespeicherten Würfel
-void rollDice( int *rolls, int *savedDice ){
+void rollDice( DIE * wuerfel ){
     int i;
     
-    for( i = 0; i < 6; i++ ){
-        if( savedDice[i] == 0 ) rolls[i] = rand() % 6 + 1;
+    for( i = 0; i < NUMBER_OF_DICE; i++ ){
+        if( wuerfel[i].saved == 0 )
+           wuerfel[i].roll = rand() % 6 + 1;
     }
 }
 
 
 //gibt 1..6 und die dazugehörigen Würfe aus, und noch viel mehr
-void printRolls( int *rolls, int *points, int *savedDice, int totalPoints ){
+void printRolls( DIE * wuerfel, int totalPoints ){
     int i;
-    
-    printf( "Würfel:     1   2   3   4   5   6\n");
+    takeBreak( 500 );
+    printf( "Würfel:  " );
+    fflush(stdout);
+    for( i = 1; i <= NUMBER_OF_DICE; i++ ){
+       takeBreak( 200 );
+       printf( "%7d", i );
+       fflush(stdout);
+    }
+    printf( "\n" );
     
     printf( "Ergebnis: " );
-    for( i = 0; i < 6; i++ ){
-        printf( "%3d ", rolls[i] );
+    fflush(stdout);
+    for( i = 0; i < NUMBER_OF_DICE; i++ ){
+       takeBreak( 200 );
+       printf( "%6d ", wuerfel[i].roll );
+       fflush(stdout);
     }
     
     printf( "\n" );
     
     printf( "Punkte:   " );
-    for( i = 0; i < 6; i++ ){
-        printf( "%3d ", points[i] );
+    fflush(stdout);
+    for( i = 0; i < NUMBER_OF_DICE; i++ ){
+       takeBreak( 200 ); 
+       printf( "%6d ", wuerfel[i].points );
+       fflush(stdout);
     }
     
     
     printf( "\n" );
     
     printf( "gesp.:    " );
-    for( i = 0; i < 6; i++ ){
-        printf( "%3d ", savedDice[i] );
+    for( i = 0; i < NUMBER_OF_DICE; i++ ){
+       takeBreak( 200 );
+       printf( "%6d ", wuerfel[i].saved );
+       fflush(stdout);
     }
     
     printf( "\n\n" );
-    
+    takeBreak( 200 );
     printf( "Gesamtpunkte: %d\n", totalPoints );
-    
+    fflush(stdout);
     
     printf( "\n\n" );
 }
@@ -88,25 +121,17 @@ int dicePoints( int dice ){
 
 
 //weist Würfen Punkte zu
-void allocatePoints( int *dice, int *points ){
+void allocatePoints( DIE * wuerfel ){
     int i;
     
-    for( i = 0; i < 6; i++ ){
-        points[i] = dicePoints( dice[i] );
+    for( i = 0; i < NUMBER_OF_DICE; i++ ){
+        wuerfel[i].points = dicePoints( wuerfel[i].roll );
     }
 }
 
 
-//addiert neue Punkte zum Punktestand
-int addPoints( int *totalPoints, int newPoints ){
-    totalPoints += newPoints;
-    //return *totalPoints;
-}
-
-
 //speichert Würfel
-void keepDice( int *savedDice, int *points, int *totalPoints ){
-    const int LINELENGTH = 80;
+void keepDice( DIE * wuerfel, int * totalPoints ){
     char line[LINELENGTH];
     char *dice;
     char *delimiter = " ";
@@ -121,10 +146,10 @@ void keepDice( int *savedDice, int *points, int *totalPoints ){
     
     while( dice != NULL ) {
         enteredDice = atoi( dice ); //String in Integer umwandeln
-        if( legalDice( enteredDice, savedDice, points ) ) {
+        if( legalDice( enteredDice, wuerfel ) ) {
             printf( "Erkannt: %d, legal\n", enteredDice );
-            savedDice[ enteredDice - 1 ] = 1;
-            *totalPoints += points[ enteredDice - 1 ];
+            wuerfel[enteredDice - 1].saved = 1;
+            *totalPoints += wuerfel[enteredDice - 1].points;
         } else {
             printf( "Erkannt: %d, nicht legal\n", enteredDice );
         }
@@ -134,24 +159,24 @@ void keepDice( int *savedDice, int *points, int *totalPoints ){
 
 
 //darf der Würfel gespeichert werden?
-int legalDice( int dice, int *savedDice, int *points ){
+int legalDice( int dice, DIE * wuerfel ){
     int legal;
     
     if( dice < 1 || dice > 6 ) return 0;
-    if( points[ dice - 1 ] == 0 ) return 0;
+    if( wuerfel[dice - 1].points == 0 ) return 0;
     
-    legal = savedDice[ dice - 1 ] == 0 ? 1 : 0;
+    legal = wuerfel[dice - 1].saved == 0 ? 1 : 0;
         
     return legal;
 }
 
 
 //addiert die Punkte der nichtgespeicherten Würfel nach einem Wurf. Falls die Summe 0 ist, ist das Spiel vorbei.
-int gameOver( int *points, int *savedDice ){
+int gameOver( DIE * wuerfel ){
     int i, sum = 0;
     
-    for( i = 0; i < 6; i++ ){
-        if( savedDice[ i ] == 0 ) sum += points[ i ];
+    for( i = 0; i < NUMBER_OF_DICE; i++ ){
+        if( wuerfel[i].saved == 0 ) sum += wuerfel[i].points;
     }
     
     return sum;
@@ -159,61 +184,123 @@ int gameOver( int *points, int *savedDice ){
 
 
 //falls alle Würfel gespeichert wurden, wird die Speicherung wieder zurückgesetzt
-void fullSave( int *savedDice ){
+void fullSave( DIE * wuerfel ){
     int i, sum = 0;
     
-    for( i = 0; i < 6; i++ ){
-        sum += savedDice[ i ];
+    for( i = 0; i < NUMBER_OF_DICE; i++ ){
+        sum += wuerfel[i].saved;
     }
     
-    if( sum == 6 ){
-        for( i = 0; i < 6; i++ ){
-            savedDice[ i ] = 0;
+    if( sum == NUMBER_OF_DICE ){
+        for( i = 0; i < NUMBER_OF_DICE; i++ ){
+            wuerfel[i].saved = 0;
         }
     }
 }
 
 
-int main( ){
-    int rolls[6] = { 0, 0, 0, 0, 0, 0 };
-    int savedDice[6] = { 0, 0, 0, 0, 0, 0 };
-    int points[6] = { 0, 0, 0, 0, 0, 0 };
-    int totalPoints = 0;
-    int wurfNr = 0;
-    int c;
-    char nochEinWurf[80];
-    
-    startScreen();
 
-    srand( time( NULL ) ); //Zufallszahlengenerator initialisieren
-    
-    
+//schreibt Punktzahl in Datei
+void exportScores( int totalPoints ){
+   FILE *scoresFile;
+   time_t now = time( NULL );
+   
+   scoresFile = fopen( "highscores.txt", "a" );
+   fprintf( scoresFile, "%d %s %s", totalPoints, getenv("USER"), asctime(gmtime(&now)) );
+}
+
+
+//gibt bisherigen Highscore zurück
+int currentHighscore(){
+   FILE *scoresFile;
+   char line[LINELENGTH];
+   int score = 0;
+   int highscore = 0;
+   
+   scoresFile = fopen( "highscores.txt", "r" );
+   
+   while( !feof( scoresFile ) ){
+      fgets( line, LINELENGTH, scoresFile );
+      strtok( line, " " );
+      score = atoi( line );
+      if( score > highscore ){
+         highscore = score;
+      }
+   }
+   
+   
+   return highscore;
+}
+
+
+
+int main( ){  
+   DIE wuerfel[NUMBER_OF_DICE] = {};
+   char nochEinWurf[LINELENGTH];
+   int c, wurfNr = 0, totalPoints = 0;
+   int highscore = 0;
+   
+   srand( time( NULL ) ); //Zufallszahlengenerator initialisieren
+
+
+   
+   startScreen();
+   
+   highscore = currentHighscore();
+   takeBreak( 800 );
+   printf( "\nHighscore: %d\n", highscore );
+   takeBreak( 800 );
+
     do{
         wurfNr++;
-        takeBreak();
+        
+        takeBreak( 500 );
+        
         printf( "\nWURF NUMMER %d\n\n", wurfNr );
-        rollDice( rolls, savedDice );
-        allocatePoints( rolls, points );
-        takeBreak();
-        printRolls( rolls, points, savedDice, totalPoints );
-        if( !gameOver( points, savedDice ) ){
+        
+        rollDice( wuerfel );
+        
+        allocatePoints( wuerfel );
+        
+        takeBreak( 500 );
+        
+        printRolls( wuerfel, totalPoints );
+        
+        if( !gameOver( wuerfel ) ){
             totalPoints = 0;
             printf( "Leider verloren.\n" );
             break;
         }
-        keepDice( savedDice, points, &totalPoints );
+        
+        keepDice( wuerfel, &totalPoints );
+        
         printf( "\n" );
-        takeBreak();
-        printRolls( rolls, points, savedDice, totalPoints );
-        fullSave( savedDice );
-        takeBreak();
+        
+        takeBreak( 500 );
+        
+        printRolls( wuerfel, totalPoints );
+        
+        fullSave( wuerfel );
+        
+        takeBreak( 500 );
+        
         printf( "\nErneut würfeln? (j/n) " );
+        
         scanf( "%s", &nochEinWurf[0] );
+        
         while ((c = getchar()) != '\n' && c != EOF); //stdin leeren, sonst nimmt fgets das \n vom scanf
+        
     } while( *nochEinWurf == 'j' );
     
-    takeBreak();
+    takeBreak( 500 );
     printf( "\nEndpunktzahl: %d\n\n", totalPoints );
+    
+    if( totalPoints > highscore ) {
+       takeBreak( 500 );
+       printf( "NEUER HIGHSCORE!\n\n" );
+    }
+    
+    exportScores( totalPoints );
         
     return 0;
 }
