@@ -207,6 +207,7 @@ void exportScores( int totalPoints ){
    
    scoresFile = fopen( "highscores.txt", "a" );
    fprintf( scoresFile, "%d %s %s", totalPoints, getenv("USER"), asctime(gmtime(&now)) );
+   fclose( scoresFile );
 }
 
 
@@ -217,7 +218,7 @@ int currentHighscore(){
    int score = 0;
    int highscore = 0;
    
-   scoresFile = fopen( "highscores.txt", "r" );
+   scoresFile = fopen( "highscores.txt", "ab+" );
    
    while( !feof( scoresFile ) ){
       fgets( line, LINELENGTH, scoresFile );
@@ -228,6 +229,7 @@ int currentHighscore(){
       }
    }
    
+   fclose( scoresFile );
    
    return highscore;
 }
